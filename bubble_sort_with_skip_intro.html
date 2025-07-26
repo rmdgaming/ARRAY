@@ -1,0 +1,229 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bubble Sort Visualizer</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #1e3c72, #2a5298);
+      color: white;
+    }
+    #intro {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      z-index: 10;
+      transition: opacity 1s ease;
+    }
+    #intro.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #app {
+      display: none;
+      padding: 20px;
+      text-align: center;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      margin: 5px;
+      border-radius: 5px;
+      border: none;
+    }
+    button {
+      background-color: #ffcc00;
+      color: #333;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .bar-container {
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-start;
+      height: 250px;
+      overflow-x: auto;
+      padding: 10px;
+      margin-top: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+    }
+    .bar {
+      width: 30px;
+      margin: 0 3px;
+      background-color: #00c3ff;
+      text-align: center;
+      font-size: 12px;
+      color: white;
+      border-radius: 3px 3px 0 0;
+      transition: height 0.2s ease;
+    }
+    .bar.pointer {
+      background-color: red !important;
+    }
+    .narrator-box {
+      background-color: rgba(255,255,255,0.1);
+      padding: 15px;
+      border-radius: 10px;
+      max-width: 600px;
+      margin: 20px auto;
+      font-style: italic;
+      font-size: 16px;
+      min-height: 60px;
+    }
+  </style>
+</head>
+<body>
+  <div id="intro">
+    <h1>Bubble Sort Visualizer</h1>
+    <p>Powered by AI narration and animation</p><button onclick="skipIntro()" style="margin-top:20px; padding:10px 20px; font-size:16px; cursor:pointer;">⏩ Skip Intro</button>
+  </div>
+
+  <div id="app">
+    <h2>Bubble Sort Visualizer 🤖🗣️</h2>
+    <input type="text" id="arrayInput" placeholder="e.g. 5,3,8,1" />
+    <button onclick="startSort()">Start Sorting</button>
+    <button onclick="toggleMute()" id="muteBtn">🔊 Mute</button>
+    <button onclick="toggleMusic()" id="musicBtn">🎵 Music On</button>
+    <input type="range" id="musicVolume" min="0" max="1" step="0.01" value="1" onchange="setMusicVolume(this.value)">
+    <div class="bar-container" id="barContainer"></div>
+    <div class="narrator-box" id="narratorBox">Hi, I'm your sorting assistant. Let's sort this array together!</div>
+    <audio id="bgMusic" loop>
+      <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg" />
+    </audio>
+    <audio id="swapSound">
+      <source src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" type="audio/ogg">
+    </audio>
+  </div>
+
+  <script>
+    let isMuted = false;
+
+    window.onload = () => {
+      setTimeout(() => {
+        document.getElementById("intro").classList.add("hidden");
+        document.getElementById("app").style.display = "block";
+      }, 4000);
+    };
+
+    function toggleMute() {
+      isMuted = !isMuted;
+      document.getElementById("muteBtn").innerText = isMuted ? "🔇 Unmute" : "🔊 Mute";
+    }
+
+    function toggleMusic() {
+      const music = document.getElementById("bgMusic");
+      const btn = document.getElementById("musicBtn");
+      if (music.paused) {
+        music.play().then(() => {
+          btn.innerText = "🎵 Music On";
+        }).catch(e => {
+          console.error("Play blocked:", e);
+        });
+      } else {
+        music.pause();
+        btn.innerText = "🔇 Music Off";
+      }
+    }
+
+    function setMusicVolume(val) {
+      document.getElementById("bgMusic").volume = val;
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function speakSync(message) {
+      return new Promise(resolve => {
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.lang = "en-US";
+        utterance.rate = 1;
+        utterance.onend = resolve;
+        speechSynthesis.speak(utterance);
+      });
+    }
+
+    async function updateNarrator(message) {
+      document.getElementById("narratorBox").innerText = "🤖 " + message;
+      if (!isMuted) {
+        await speakSync(message);
+      }
+    }
+
+    function drawBars(arr) {
+      const container = document.getElementById("barContainer");
+      container.innerHTML = "";
+      for (let i = 0; i < arr.length; i++) {
+        const bar = document.createElement("div");
+        bar.className = "bar";
+        bar.style.height = (arr[i] * 3) + "px";
+        bar.textContent = arr[i];
+        container.appendChild(bar);
+      }
+    }
+
+    async function bubbleSort(arr) {
+      const bars = document.querySelectorAll(".bar");
+      const sound = document.getElementById("swapSound");
+
+      for (let i = 0; i < arr.length - 1; i++) {
+        for (let j = 0; j < arr.length - i - 1; j++) {
+          await updateNarrator(`Comparing ${arr[j]} and ${arr[j + 1]}`);
+          bars[j].classList.add("pointer");
+          bars[j+1].classList.add("pointer");
+
+          if (arr[j] > arr[j + 1]) {
+            await updateNarrator(`Swapping ${arr[j]} and ${arr[j + 1]}`);
+            [arr[j], arr[j + 1]] = [arr[j + 1], arr[j]];
+
+            bars[j].style.height = (arr[j] * 3) + "px";
+            bars[j].textContent = arr[j];
+            bars[j + 1].style.height = (arr[j + 1] * 3) + "px";
+            bars[j + 1].textContent = arr[j + 1];
+
+            sound.currentTime = 0;
+            sound.play();
+          } else {
+            await updateNarrator(`No swap needed between ${arr[j]} and ${arr[j + 1]}`);
+          }
+
+          bars[j].classList.remove("pointer");
+          bars[j+1].classList.remove("pointer");
+
+          if (isMuted) await sleep(300);
+        }
+      }
+
+      await updateNarrator("✅ Done! The array is now sorted.");
+    }
+
+    function startSort() {
+      const input = document.getElementById("arrayInput").value;
+      const arr = input.split(",").map(x => parseInt(x.trim())).filter(x => !isNaN(x));
+      if (!arr.length) {
+        alert("Enter valid numbers!");
+        return;
+      }
+      drawBars(arr);
+      
+      updateNarrator("Let's get started.").then(() => bubbleSort(arr));
+    }
+  
+    function skipIntro() {
+      document.getElementById("intro").classList.add("hidden");
+      document.getElementById("app").style.display = "block";
+    }
+
+</script>
+</body>
+</html>
